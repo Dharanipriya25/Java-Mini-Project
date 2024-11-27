@@ -1,0 +1,175 @@
+import java.sql.*;
+
+public class CourierManagementSystem {
+
+    // Database connection
+    public static Connection getConnection() throws SQLException {
+        String url = "jdbc:mysql://localhost:3306/courier_management";
+        String user = "root";  // Change to your MySQL username
+        String password = "";  // Change to your MySQL password
+        return DriverManager.getConnection(url, user, password);
+    }
+
+    // Base Courier Class
+    public static class Courier {
+        private int id;
+        private String sender;
+        private String receiver;
+        private double packageWeight;
+        private String deliveryStatus;
+
+        // Constructor
+        public Courier(String sender, String receiver, double packageWeight) {
+            this.sender = sender;
+            this.receiver = receiver;
+            this.packageWeight = packageWeight;
+            this.deliveryStatus = "Pending";
+        }
+
+        // Add Courier to DB
+        public void addCourierToDB() {
+            try (Connection conn = getConnection()) {
+                String sql = "INSERT INTO couriers (sender, receiver, package_weight, delivery_status) VALUES (?, ?, ?, ?)";
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                stmt.setString(1, this.sender);
+                stmt.setString(2, this.receiver);
+                stmt.setDouble(3, this.packageWeight);
+                stmt.setString(4, this.deliveryStatus);
+                stmt.executeUpdate();
+                System.out.println("Courier added to the database.");
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Update Delivery Status in DB
+        public void updateDeliveryStatusInDB(String status) {
+            this.deliveryStatus = status;
+            try (Connection conn = getConnection()) {
+                String sql = "UPDATE couriers SET delivery_status = ? WHERE sender = ? AND receiver = ?";
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                stmt.setString(1, this.deliveryStatus);
+                stmt.setString(2, this.sender);
+                stmt.setString(3, this.receiver);
+                stmt.executeUpdate();
+                System.out.println("Delivery status updated to: " + this.deliveryStatus);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Get Courier Details from DB
+        public static void getCourierDetailsFromDB(int courierId) {
+            try (Connection conn = getConnection()) {
+                String sql = "SELECT * FROM couriers WHERE id = ?";
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                stmt.setInt(1, courierId);
+                ResultSet rs = stmt.executeQuery();
+                if (rs.next()) {
+                    System.out.println("Courier ID: " + rs.getInt("id"));
+                    System.out.println("Sender: " + rs.getString("sender"));
+                    System.out.println("Receiver: " + rs.getString("receiver"));
+                    System.out.println("Package Weight: " + rs.getDouble("package_weight"));
+                    System.out.println("Delivery Status: " + rs.getString("delivery_status"));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Getters and Setters
+        public int getId() {
+            return id;
+        }
+
+        public void setId(int id) {
+            this.id = id;
+        }
+
+        public String getSender() {
+            return sender;
+        }
+
+        public void setSender(String sender) {
+            this.sender = sender;
+        }
+
+        public String getReceiver() {
+            return receiver;
+        }
+
+        public void setReceiver(String receiver) {
+            this.receiver = receiver;
+        }
+
+        public double getPackageWeight() {
+            return packageWeight;
+        }
+
+        public void setPackageWeight(double packageWeight) {
+            this.packageWeight = packageWeight;
+        }
+
+        public String getDeliveryStatus() {
+            return deliveryStatus;
+        }
+
+        public void setDeliveryStatus(String deliveryStatus) {
+            this.deliveryStatus = deliveryStatus;
+        }
+    }
+
+    // Express Courier Class
+    public static class ExpressCourier extends Courier {
+
+        // Constructor
+        public ExpressCourier(String sender, String receiver, double packageWeight) {
+            super(sender, receiver, packageWeight);
+        }
+
+        // Override the method to add express delivery logic
+        @Override
+        public void updateDeliveryStatusInDB(String status) {
+            super.updateDeliveryStatusInDB(status);
+            System.out.println("This is an Express Courier, priority delivery!");
+        }
+    }
+
+    // Standard Courier Class
+    public static class StandardCourier extends Courier {
+
+        // Constructor
+        public StandardCourier(String sender, String receiver, double packageWeight) {
+            super(sender, receiver, packageWeight);
+        }
+
+        // Override the method to add standard delivery logic
+        @Override
+        public void updateDeliveryStatusInDB(String status) {
+            super.updateDeliveryStatusInDB(status);
+            System.out.println("This is a Standard Courier, regular delivery.");
+        }
+    }
+
+    // Main Method (Driver Code)
+    public static void main(String[] args) {
+        // Create courier objects
+        Courier courier1 = new StandardCourier("John Doe", "Alice Smith", 5.0);
+        Courier courier2 = new ExpressCourier("Tom Hanks", "Mary Jane", 2.5);
+
+        // Add couriers to the database
+        courier1.addCourierToDB();
+        courier2.addCourierToDB();
+
+        // Retrieve and display courier details from the database
+        System.out.println("\nFetching details for Courier 1:");
+        Courier.getCourierDetailsFromDB(1);  // Assuming ID 1
+
+        // Update delivery status for a courier
+        courier1.updateDeliveryStatusInDB("Shipped");
+        courier2.updateDeliveryStatusInDB("In Transit");
+
+        // Display updated details
+        System.out.println("\nFetching updated details for Courier 1:");
+        Courier.getCourierDetailsFromDB(1);
+    }
